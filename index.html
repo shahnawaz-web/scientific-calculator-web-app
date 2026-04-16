@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0"/>
+  <meta name="description" content="Free Scientific Calculator — fully functional online scientific calculator with trigonometric functions, logarithms, powers, factorials, and more. Mobile-friendly with dual display."/>
+  <meta name="keywords" content="scientific calculator, online calculator, trigonometry calculator, log calculator, sin cos tan, free calculator, math calculator"/>
+  <meta name="robots" content="index,follow"/>
+  <meta name="author" content="Shahnawaz Khan"/>
+  <meta property="og:title" content="Scientific Calculator | Free Online Calculator"/>
+  <meta property="og:description" content="Fully functional scientific calculator with sin, cos, tan, log, powers, and more. Works on all devices."/>
+  <meta property="og:type" content="website"/>
+  <link rel="stylesheet" href="scientific-calculator.css">
+  <title>Scientific Calculator | Free Online</title>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Scientific Calculator","description":"Fully functional scientific calculator with trigonometric functions, logarithms, powers, and factorials.","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0"}}</script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Nunito:wght@400;600;700;800;900&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+
+  <!-- github alert animation -->
+  <style>
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+</style>
+ 
+</head>
+<body>
+
+
+
+<!-- MAIN LAYOUT -->
+<div class="pg-wrap">
+
+  <!-- ── CALCULATOR ── -->
+  <div class="calc-shell">
+    <h1 class="calc-title">Scientific Calculator</h1>
+
+    <!-- POWER + ANGLE ROW -->
+    <div class="power-row">
+      <label class="pwr-lbl on">
+        <input type="radio" name="pwr" value="on" id="pwOn" checked onchange="setPower(true)"/> ON
+      </label>
+      <label class="pwr-lbl off">
+        <input type="radio" name="pwr" value="off" id="pwOff" onchange="setPower(false)"/> OFF
+      </label>
+      <div class="angle-row">
+        <button class="ang-btn active"   id="bDeg" onclick="setAngle('deg')">DEG</button>
+        <button class="ang-btn inactive" id="bRad" onclick="setAngle('rad')">RAD</button>
+      </div>
+    </div>
+
+    <!-- DUAL DISPLAY -->
+    <div class="display-wrap">
+      <!-- TOP: RESULT (primary) -->
+      <div class="disp-section">
+        <span class="disp-label lbl-result">RESULT</span>
+        <div class="disp-result is-zero" id="dResult">0</div>
+      </div>
+      <!-- Separator -->
+      <div class="disp-sep"></div>
+      <!-- BOTTOM: INPUT/EXPRESSION (secondary) -->
+      <div class="disp-section">
+        <span class="disp-label lbl-input">INPUT</span>
+        <div class="disp-input" id="dInput">—</div>
+      </div>
+    </div>
+
+    <!-- MEMORY ROW -->
+    <div class="mem-row">
+      <button class="mem-btn" onclick="mClear()"  title="Memory Clear">MC</button>
+      <button class="mem-btn" onclick="mRecall()" title="Memory Recall" id="btnMR">MR</button>
+      <button class="mem-btn" onclick="mPlus()"   title="Memory Add">M+</button>
+      <button class="mem-btn" onclick="mMinus()"  title="Memory Subtract">M−</button>
+    </div>
+
+    <!-- BUTTON GRID -->
+    <div class="btn-grid">
+      <!-- Row 1: Scientific -->
+      <button class="btn b-sci"  onclick="unary('sqrt')"        title="Square Root">√</button>
+      <button class="btn b-sci"  onclick="unary('exp')"         title="e raised to x">eˣ</button>
+      <button class="btn b-trig" onclick="unary('sin')"         title="Sine">Sin</button>
+      <button class="btn b-trig" onclick="unary('cos')"         title="Cosine">Cos</button>
+      <button class="btn b-trig" onclick="unary('tan')"         title="Tangent">Tan</button>
+      <!-- Row 2 -->
+      <button class="btn b-sci"  onclick="unary('recip')"       title="1 divided by x">1/x</button>
+      <button class="btn b-sci"  onclick="unary('log')"         title="Log base 10">Log</button>
+      <button class="btn b-trig" onclick="unary('sinh')"        title="Hyperbolic Sine">Sinh</button>
+      <button class="btn b-trig" onclick="unary('cosh')"        title="Hyperbolic Cosine">Co…</button>
+      <button class="btn b-trig" onclick="unary('tanh')"        title="Hyperbolic Tangent">Tanh</button>
+      <!-- Row 3 -->
+      <button class="btn b-util" onclick="pressOp('^')"         title="x to the power y">xʸ</button>
+      <button class="btn b-sci"  onclick="unary('pct')"         title="Percent">%</button>
+      <button class="btn b-clr"  onclick="clearAll()"           title="Clear All">Clear</button>
+      <button class="btn b-back" onclick="backspace()"          title="Delete last character">Back</button>
+      <button class="btn b-op"   onclick="pressOp('+')"         >+</button>
+      <!-- Row 4 -->
+      <button class="btn b-util" onclick="unary('cube')"        title="x cubed">x³</button>
+      <button class="btn b-num"  onclick="digit('7')"           >7</button>
+      <button class="btn b-num"  onclick="digit('8')"           >8</button>
+      <button class="btn b-num"  onclick="digit('9')"           >9</button>
+      <button class="btn b-op"   onclick="pressOp('-')"         >−</button>
+      <!-- Row 5 -->
+      <button class="btn b-util" onclick="unary('sq')"          title="x squared">x²</button>
+      <button class="btn b-num"  onclick="digit('4')"           >4</button>
+      <button class="btn b-num"  onclick="digit('5')"           >5</button>
+      <button class="btn b-num"  onclick="digit('6')"           >6</button>
+      <button class="btn b-op"   onclick="pressOp('*')"         >×</button>
+      <!-- Row 6 -->
+      <button class="btn b-sci"  onclick="unary('fact')"        title="Factorial n!">n!</button>
+      <button class="btn b-num"  onclick="digit('1')"           >1</button>
+      <button class="btn b-num"  onclick="digit('2')"           >2</button>
+      <button class="btn b-num"  onclick="digit('3')"           >3</button>
+      <button class="btn b-op"   onclick="pressOp('/')"         >÷</button>
+      <!-- Row 7 -->
+      <button class="btn b-util" onclick="toggleSign()"         title="Toggle +/-">+/−</button>
+      <button class="btn b-num b-zero" onclick="digit('0')"     >0</button>
+      <button class="btn b-num"  onclick="dot()"                style="font-size:clamp(16px,4vw,20px);">.</button>
+      <button class="btn b-eq"   onclick="calc()"               >=</button>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="history-wrap">
+      <div class="hist-hdr" onclick="toggleHist()">
+        <span>Calculation History</span>
+        <svg id="hArrow" width="13" height="13" fill="none" stroke="#334155" viewBox="0 0 24 24" style="transition:transform .2s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+      <div class="hist-body" id="hBody" style="display:none;">
+        <div class="hist-empty" id="hEmpty">No history yet</div>
+      </div>
+    </div>
+
+    <!-- KEYBOARD HINTS -->
+    <div class="kb-bar">
+      <span class="kb-chip">0-9</span>
+      <span class="kb-chip">+ − × ÷</span>
+      <span class="kb-chip">Enter=Calc</span>
+      <span class="kb-chip">Esc=Clear</span>
+      <span class="kb-chip">Backspace=Del</span>
+    </div>
+  </div>
+
+  <!-- ── SIDE COLUMN ── -->
+  <div class="side-col">
+    <div class="side-card">
+      <h3>Constants</h3>
+      <div class="sc-row"><span class="sc-k">π</span><span class="sc-v">3.14159265...</span></div>
+      <div class="sc-row"><span class="sc-k">e</span><span class="sc-v">2.71828182...</span></div>
+      <div class="sc-row"><span class="sc-k">φ (Golden)</span><span class="sc-v">1.61803398...</span></div>
+      <div class="sc-row"><span class="sc-k">√2</span><span class="sc-v">1.41421356...</span></div>
+      <div class="sc-row"><span class="sc-k">ln(2)</span><span class="sc-v">0.69314718...</span></div>
+    </div>
+    <div class="side-card">
+      <h3>Color Legend</h3>
+      <div class="sc-row">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#7dd3fc;">
+          <span style="width:10px;height:10px;background:#0e4a6e;border-radius:2px;display:inline-block;"></span> Trigonometric
+        </span>
+      </div>
+      <div class="sc-row">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#6ee7b7;">
+          <span style="width:10px;height:10px;background:#064e3b;border-radius:2px;display:inline-block;"></span> Scientific
+        </span>
+      </div>
+      <div class="sc-row">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#c7d2fe;">
+          <span style="width:10px;height:10px;background:#312e81;border-radius:2px;display:inline-block;"></span> Power/Utility
+        </span>
+      </div>
+      <div class="sc-row">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#93c5fd;">
+          <span style="width:10px;height:10px;background:#1e40af;border-radius:2px;display:inline-block;"></span> Arithmetic
+        </span>
+      </div>
+      <div class="sc-row">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#fbbf24;">
+          <span style="width:10px;height:10px;background:#b45309;border-radius:2px;display:inline-block;"></span> Equals / Result
+        </span>
+      </div>
+      <div class="sc-row">
+        <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#fca5a5;">
+          <span style="width:10px;height:10px;background:#7f1d1d;border-radius:2px;display:inline-block;"></span> Clear
+        </span>
+      </div>
+    </div>
+   
+  </div>
+</div>
+
+
+<!-- SEO ARTICLE -->
+<div class="seo">
+  <h2>About This Scientific Calculator</h2>
+  <p>This free online scientific calculator supports a full range of mathematical operations. The dual-display interface shows your <strong>result prominently at the top</strong> and your <strong>current input expression below</strong>, so you always know both what you entered and what the answer is.</p>
+
+  <h2>How to Use</h2>
+  <ul>
+    <li>Type numbers using digit buttons or keyboard (<code>0</code>–<code>9</code>)</li>
+    <li>Press <code>=</code> or <code>Enter</code> to compute the result</li>
+    <li>Use <code>Clear</code> to clear all, or <code>Back</code> to delete last character</li>
+    <li>Toggle <code>DEG</code> / <code>RAD</code> for trigonometric function mode</li>
+    <li>Memory: <code>M+</code> adds to memory, <code>M−</code> subtracts, <code>MR</code> recalls, <code>MC</code> clears</li>
+    <li>Tap any history item to restore that result</li>
+  </ul>
+
+  <h2>Supported Functions</h2>
+  <p><strong>√</strong> (square root), <strong>eˣ</strong> (exponential), <strong>sin / cos / tan</strong>, <strong>sinh / cosh / tanh</strong> (hyperbolic), <strong>1/x</strong> (reciprocal), <strong>log</strong> (base-10), <strong>n!</strong> (factorial), <strong>x²</strong> (square), <strong>x³</strong> (cube), <strong>xʸ</strong> (power), <strong>+/−</strong> (sign toggle), <strong>%</strong> (percentage).</p>
+</div>
+
+<script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+<script src="scientific-calculator.js"></script>
+</body>
+</html>
