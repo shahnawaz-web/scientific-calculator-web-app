@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <!-- Add favicon -->
+  <link rel="icon" type="" href="/calculator-favicon.png"/>
+  <!-- Add og:image for social sharing -->
+  <meta property="og:image" content="https://scientific-calculator-web-app.netlify.app/scientific-calculator-portfolio-img.png"/>
+  <meta property="og:image:alt" content="Scientific Calculator Screenshot">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0"/>
   <meta name="description" content="Free Scientific Calculator — fully functional online scientific calculator with trigonometric functions, logarithms, powers, factorials, and more. Mobile-friendly with dual display."/>
   <meta name="keywords" content="scientific calculator, online calculator, trigonometry calculator, log calculator, sin cos tan, free calculator, math calculator"/>
@@ -43,11 +48,12 @@
 <div class="pg-wrap">
 
   <!-- ── CALCULATOR ── -->
-  <div class="calc-shell">
+  <div class="calc-shell" role="application" aria-label="Scientific Calculator">
     <h1 class="calc-title">Scientific Calculator</h1>
 
     <!-- POWER + ANGLE ROW -->
     <div class="power-row">
+      <legend>Power & Angle Mode</legend>
       <label class="pwr-lbl on">
         <input type="radio" name="pwr" value="on" id="pwOn" checked onchange="setPower(true)"/> ON
       </label>
