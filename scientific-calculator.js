@@ -2,18 +2,19 @@
 
 /* ------ STATE ------ */
 const S = {
-  cur:      '0',      // display string
-  expr:     '',       // expression label
+  cur:      '0',      // number currently being typed / shown
+  tokens:   [],        // [num, op, num, op, ... ] built as the expression is entered
   mem:      0,
-  op:       null,     // pending operator
-  prev:     null,     // value before op
-  waitNext: false,    // expecting new operand
+  waitNext: true,       // true = next digit press starts a brand-new operand
   hasDot:   false,
-  angle:    'deg',    // 'deg' | 'rad'
+  angle:    'deg',      // 'deg' | 'rad'
   on:       true,
   histOpen: false,
+  lastExpr: null,       // frozen "a + b =" label shown right after calc()/unary()
 };
 let histArr = [];
+
+const OP_LABEL = {'+':'+','-':'−','*':'×','/':'÷','^':'^'};
 
 /* ---- FORMAT NUMBER ---- */
 function fmt(n) {
@@ -21,6 +22,49 @@ function fmt(n) {
   const abs = Math.abs(n);
   if(abs !== 0 && (abs < 1e-10 || abs > 1e15)) return n.toPrecision(12).replace(/\.?0+$/, '');
   return String(parseFloat(n.toPrecision(15)));
+}
+
+/* ---- EXPRESSION HELPERS ---- */
+// tokArr: [num, op, num, op, ..., num]  (always odd length)
+function buildExprString(tokArr) {
+  const parts = [];
+  for(let i=0;i<tokArr.length;i++) {
+    parts.push(i % 2 === 0 ? fmt(tokArr[i]) : (OP_LABEL[tokArr[i]] || tokArr[i]));
+  }
+  return parts.join(' ');
+}
+
+// Live label for the secondary (input) display while the user is typing.
+function liveExprDisplay() {
+  if(S.tokens.length === 0) {
+    return S.waitNext ? (S.lastExpr || '—') : '—';
+  }
+  let s = buildExprString(S.tokens);
+  if(!S.waitNext) s += ' ' + S.cur;
+  return s;
+}
+
+// Reduce a flat token list for one precedence tier (e.g. ['*','/']), left-to-right.
+function reduceOps(t, ops) {
+  const out = [t[0]];
+  for(let i=1;i<t.length;i+=2) {
+    const op = t[i], num = t[i+1];
+    if(ops.includes(op)) {
+      const prev = out.pop();
+      out.push(compute(prev, num, op));
+    } else {
+      out.push(op, num);
+    }
+  }
+  return out;
+}
+
+// Evaluate a full token list respecting ^  >  × ÷  >  + −
+function evalTokens(t) {
+  t = reduceOps(t, ['^']);
+  t = reduceOps(t, ['*', '/']);
+  t = reduceOps(t, ['+', '-']);
+  return t[0];
 }
 
 /* ----- REFRESH DISPLAY ----- */
@@ -33,7 +77,7 @@ function refresh() {
     (S.cur === '0'     ? ' is-zero'  : '') +
     (S.cur === 'Error' ? ' is-error' : '');
 
-  eEl.textContent = S.expr || '—';
+  eEl.textContent = liveExprDisplay();
 }
 
 /* ----- FLASH ----- */
@@ -47,10 +91,12 @@ function flash() {
 /* ---- POWER ---- */
 function setPower(on) {
   S.on = on;
-  const grid = document.getElementById('btnGrid') || document.querySelector('.btn-grid');
   document.querySelectorAll('.btn').forEach(b => { b.disabled = !on; });
   document.querySelectorAll('.mem-btn').forEach(b => { b.disabled = !on; });
-  if(!on) { S.cur='0'; S.expr=''; S.op=null; S.prev=null; S.waitNext=false; S.hasDot=false; refresh(); }
+  if(!on) {
+    S.cur='0'; S.tokens=[]; S.waitNext=true; S.hasDot=false; S.lastExpr=null;
+    refresh();
+  }
 }
 
 /* ---- ANGLE ---- */
@@ -64,6 +110,7 @@ function toR(d) { return d * Math.PI / 180; }
 /* ---- DIGIT ---- */
 function digit(d) {
   if(!S.on) return;
+  S.lastExpr = null;
   if(S.waitNext) {
     S.cur = d==='0' ? '0' : d;
     S.hasDot = false; S.waitNext = false;
@@ -78,6 +125,7 @@ function digit(d) {
 /* ---- DOT ---- */
 function dot() {
   if(!S.on) return;
+  S.lastExpr = null;
   if(S.waitNext || S.cur === 'Error') { S.cur='0.'; S.hasDot=true; S.waitNext=false; refresh(); return; }
   if(!S.cur.includes('.')) { S.cur+='.'; S.hasDot=true; }
   refresh();
@@ -93,23 +141,24 @@ function toggleSign() {
 /* ---- OPERATOR ---- */
 function pressOp(op) {
   if(!S.on) return;
-  const cur = parseFloat(S.cur);
-  if(isNaN(cur)) return;
+  const curVal = parseFloat(S.cur);
+  if(isNaN(curVal)) return;
 
-  if(S.op && !S.waitNext) {
-    const r = compute(S.prev, cur, S.op);
-    S.cur = fmt(r); S.prev = r;
+  S.lastExpr = null;
+
+  if(S.tokens.length && S.waitNext) {
+    // user tapped a different operator before entering the next operand — swap it
+    S.tokens[S.tokens.length - 1] = op;
   } else {
-    S.prev = cur;
+    S.tokens.push(curVal, op);
   }
 
-  S.op = op; S.waitNext = true; S.hasDot = false;
-  const OL = {'+':'+','-':'−','*':'×','/':'÷','^':'^'};
-  S.expr = `${fmt(S.prev)} ${OL[op]||op}`;
+  S.waitNext = true;
+  S.hasDot = false;
   refresh();
 }
 
-/* ---- COMPUTE ---- */
+/* ---- COMPUTE (single binary op) ---- */
 function compute(a, b, op) {
   switch(op) {
     case '+': return a + b;
@@ -124,41 +173,55 @@ function compute(a, b, op) {
 /* ---- EQUALS ---- */
 function calc() {
   if(!S.on) return;
-  const cur = parseFloat(S.cur);
-  if(isNaN(cur)) return;
+  const curVal = parseFloat(S.cur);
+  if(isNaN(curVal)) return;
 
-  let result = cur, expr = '';
-  const OL = {'+':'+','-':'−','*':'×','/':'÷','^':'^'};
+  let exprStr, result;
 
-  if(S.op && S.prev !== null) {
-    const b = S.waitNext ? S.prev : cur; // if waitNext, user re-pressed = without new num
-    expr = `${fmt(S.prev)} ${OL[S.op]||S.op} ${fmt(S.waitNext ? S.prev : cur)}`;
-    result = compute(S.prev, S.waitNext ? S.prev : cur, S.op);
+  if(S.tokens.length === 0) {
+    result = curVal;
+    exprStr = fmt(curVal);
   } else {
-    expr = fmt(cur);
+    const finalTokens = S.tokens.concat([curVal]);
+    exprStr = buildExprString(finalTokens);
+    result  = evalTokens(finalTokens);
   }
 
-  const rs = isNaN(result)||!isFinite(result) ? 'Error' : fmt(result);
-  if(expr && expr !== rs) pushHist(expr, rs);
+  const rs = (isNaN(result) || !isFinite(result)) ? 'Error' : fmt(result);
+  if(exprStr && exprStr !== rs) pushHist(exprStr, rs);
 
-  S.expr     = expr + ' =';
+  S.tokens   = [];
   S.cur      = rs;
-  S.op       = null;
-  S.prev     = null;
   S.waitNext = true;
-  S.hasDot   = false;
+  S.hasDot   = rs.includes('.');
+  S.lastExpr = exprStr + ' =';
 
   refresh(); flash();
 }
 
 /* ---- CLEAR / BACK ---- */
 function clearAll() {
-  S.cur='0'; S.expr=''; S.op=null; S.prev=null; S.waitNext=false; S.hasDot=false;
+  S.cur='0'; S.tokens=[]; S.waitNext=true; S.hasDot=false; S.lastExpr=null;
   refresh();
 }
 
 function backspace() {
-  if(!S.on || S.cur==='Error') { clearAll(); return; }
+  if(!S.on) return;
+  if(S.cur==='Error') { clearAll(); return; }
+  S.lastExpr = null;
+
+  if(S.waitNext) {
+    // nothing typed for the new operand yet — undo the last operator/operand pair
+    if(S.tokens.length >= 2) {
+      S.tokens.splice(-2, 2);
+      S.waitNext = true;
+    } else {
+      S.waitNext = false; // back to editing the sole operand
+    }
+    refresh();
+    return;
+  }
+
   if(S.cur.length<=1 || (S.cur.length===2 && S.cur[0]==='-')) {
     S.cur='0'; S.hasDot=false;
   } else {
@@ -203,7 +266,10 @@ function unary(fn) {
   if(!isFinite(r)) r=NaN;
   const rs = isNaN(r) ? 'Error' : fmt(r);
   pushHist(label, rs);
-  S.expr=label+' ='; S.cur=rs; S.waitNext=true; S.hasDot=false;
+  S.lastExpr = label + ' =';
+  S.cur = rs;
+  S.waitNext = true;
+  S.hasDot = false;
   refresh(); flash();
 }
 
@@ -215,7 +281,7 @@ function factorial(n) {
 
 /* ---- MEMORY ---- */
 function mClear()  { S.mem=0; updMR(); }
-function mRecall() { S.cur=fmt(S.mem); S.waitNext=false; S.hasDot=S.cur.includes('.'); refresh(); }
+function mRecall() { S.lastExpr=null; S.cur=fmt(S.mem); S.waitNext=false; S.hasDot=S.cur.includes('.'); refresh(); }
 function mPlus()   { S.mem+=parseFloat(S.cur)||0; updMR(); }
 function mMinus()  { S.mem-=parseFloat(S.cur)||0; updMR(); }
 function updMR() { document.getElementById('btnMR').classList.toggle('m-active', S.mem!==0); }
@@ -237,7 +303,7 @@ function renderHist() {
     const d=document.createElement('div');
     d.className='hist-item';
     d.innerHTML=`<span class="hi-e">${h.expr}</span><span class="hi-r">= ${h.result}</span>`;
-    d.onclick=()=>{ S.cur=h.result; S.waitNext=true; refresh(); };
+    d.onclick=()=>{ S.tokens=[]; S.lastExpr=null; S.cur=h.result; S.waitNext=true; refresh(); };
     body.appendChild(d);
   });
 }
